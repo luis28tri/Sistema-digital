@@ -1,0 +1,29 @@
+// =============================================================================
+// INSTITUTO TECNOLÓGICO DE LAS AMÉRICAS (ITLA)
+// Asignatura:    Sistemas Digitales
+// Profesor:      Wilkins Gabriel Cedano Del Rosario
+// Estudiante:    Luis Manuel Trinidad Diaz
+// Matrícula:     2021-0684
+// Evaluación:    Primer Parcial (Reto Individual Verilog)
+// Módulo:        control_logic.v
+// Descripcion:   Implementación combinacional de las funciones U y V mediante 
+//                ecuaciones simplificadas por mapas de Karnaugh de 4 variables.
+// =============================================================================
+
+module control_logic (
+    input wire a,  // Bit de control más significativo (MSB)
+    input wire b,  // Bit de control 2
+    input wire c,  // Bit de control 1
+    input wire d,  // Bit de control menos significativo (LSB)
+    output wire u, // Salida de la función de control U
+    output wire v  // Salida de la función de control V
+);
+
+    // Simplificación de U (Minterms: 5,6,7,8,9,12,13,14,15) -> SOP Mínima: (b*c) + (b*d) + (a*~c)
+    // Se utiliza asignación continua (assign) para modelar las compuertas lógicas
+    assign u = (b && c) || (b && d) || (a && !c);
+
+    // Simplificación de V (Minterms: 1,2,3,6,7,9,11,13,15) -> SOP Mínima: (a*d) + (~a*c) + (~b*d)
+    assign v = (a && d) || (!a && c) || (!b && d);
+
+endmodule
