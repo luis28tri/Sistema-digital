@@ -1,0 +1,40 @@
+module datapath (
+    input wire [3:0] A,          // Operando A de 4 bits (Entero sin signo de 0 a 15)
+    input wire [3:0] B,          // Operando B de 4 bits (Entero sin signo de 0 a 15)
+    input wire u,                // Bit de selección LSB generado por control_logic
+    input wire v,                // Bit de selección MSB generado por control_logic
+    output wire [3:0] Y,         // Resultado combinacional de la operación actual
+    output wire flag_comb        // Indicador lógico de la operación actual
+);
+
+    // Concatenación del vector selector binario {v, u}
+    wire [1:0] selector = {v, u};
+
+    // --- OPERACIÓN 00: XOR ---
+    wire [3:0] res_xor   = A ^ B;       // Operación XOR bit a bit
+    wire flag_xor        = ^res_xor;    // Reducción XOR: 1 si hay un número impar de 1s (Paridad)
+
+    // --- OPERACIÓN 01: RESTA ---
+    wire [3:0] res_resta = A - B;       // Resta módulo 16 automágica por ancho de bits
+    wire flag_resta      = (A < B) ? 1'b1 : 1'b0; // Indicador de préstamo (borrow) si A es menor que B
+
+    // --- OPERACIÓN 10: SUMA ---
+    wire [4:0] res_suma_ext = A + B;    // Suma extendida a 5 bits para evaluar desbordamiento
+    wire [3:0] res_suma     = res_suma_ext[3:0]; // Recorte de los 4 bits menos significativos
+    wire flag_suma          = (res_suma_ext > 5'd15) ? 1'b1 : 1'b0; // Acarreo (carry) si excede 15
+
+    // --- OPERACIÓN 11: MAYOR ---
+    wire [3:0] res_mayor = (A >= B) ? A : B; // Determina el valor máximo entre A y B
+    wire flag_mayor      = (A == B) ? 1'b1 : 1'b0; // Indicador de igualdad estricta (empate)
+
+    // --- MULTIPLEXADO DE SALIDAS (Ruta combinacional pura usando ?:) ---
+    assign Y = (selector == 2'b00) ? res_xor :
+               (selector == 2'b01) ? res_resta :
+               (selector == 2'b10) ? res_suma :
+                                     res_mayor;
+
+    assign flag_comb = (selector == 2'b00) ? flag_xor :
+                       (selector == 2'b01) ? flag_resta :
+                       (selector == 2'b10) ? flag_suma :
+                                             flag_mayor;
+endmodule
