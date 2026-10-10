@@ -1,0 +1,36 @@
+module top_20210684 (
+    input wire a, b, c, d,       // Variables lógicas del decodificador
+    input wire [3:0] A,          // Operando A
+    input wire [3:0] B,          // Operando B
+    input wire clk,              // Señal de reloj
+    input wire rst,              // Señal de reset
+    input wire en,               // Señal de habilitación
+    output wire U,               // Salida intermedia de control U
+    output wire V,               // Salida intermedia de control V
+    output wire [3:0] Y,         // Salida combinacional directa
+    output wire flag_comb,       // Indicador combinacional directo
+    output wire [3:0] Q,         // Resultado estable de salida registrada
+    output wire flag_q           // Indicador de salida registrado
+);
+
+    // Instanciación explícita de la lógica de control
+    control_logic inst_control (
+        .a(a), .b(b), .c(c), .d(d),
+        .u(U), .v(V)
+    );
+
+    // Instanciación explícita de la ruta de datos
+    datapath inst_datapath (
+        .A(A), .B(B),
+        .u(U), .v(V),
+        .Y(Y), .flag_comb(flag_comb)
+    );
+
+    // Instanciación explícita del registro secuencial
+    result_register inst_register (
+        .clk(clk), .rst(rst), .en(en),
+        .Y(Y), .flag_comb(flag_comb),
+        .Q(Q), .flag_q(flag_q)
+    );
+
+endmodule
