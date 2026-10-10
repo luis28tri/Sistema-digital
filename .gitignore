@@ -1,0 +1,13 @@
+# =============================================================================
+# GitHub Gitignore - Reto 15 - Luis Manuel Trinidad Diaz (2021-0684)
+# =============================================================================
+# Archivos temporales y de salida de Gowin IDE
+fpga/impl/
+fpga/stdout.log
+fpga/stderr.log
+*.db
+
+# Archivos de simulación locales y trazas de ondas voluminosas
+sim/work/
+sim/*.vcd
+sim/*.log
