@@ -1,0 +1,24 @@
+module result_register (
+    input wire clk,              // Reloj del sistema
+    input wire rst,              // Reset asíncrono activo en alto (Prioridad máxima)
+    input wire en,               // Habilitación de escritura (Enable) activa en alto
+    input wire [3:0] Y,          // Entrada del dato combinacional (Procedente de datapath)
+    input wire flag_comb,        // Entrada del flag combinacional (Procedente de datapath)
+    output reg [3:0] Q,          // Salida registrada del resultado (Dato almacenado)
+    output reg flag_q            // Salida registrada del indicador (Flag almacenado)
+);
+
+    // Bloque secuencial sensible al flanco de reloj o al flanco del reset asíncrono
+    always @(posedge clk or posedge rst) begin
+        if (rst) begin
+            // Reset asíncrono: Limpia las salidas a 0 de forma inmediata sin esperar al reloj
+            Q      <= 4'b0000;
+            flag_q <= 1'b0;
+        end else if (en) begin
+            // Captura síncrona: Almacena los valores si la habilitación (en) está activa
+            Q      <= Y;
+            flag_q <= flag_comb;
+        end
+        // Si en == 0, los registros mantienen su valor implícitamente
+    end
+endmodule
