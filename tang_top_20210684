@@ -1,0 +1,62 @@
+module tang_top_20210684 (
+    input wire sys_clk,          // Oscilador físico interno de la placa de desarrollo
+    input wire sys_rst_n,        // Pulsador de hardware rst (Asumido activo en bajo _n)
+    input wire pmod_en,          // Interruptor físico externo para habilitación
+    input wire [3:0] pmod_ctrl,  // Pines físicos mapeados a las señales {a,b,c,d}
+    input wire [3:0] pmod_A,     // Pines físicos para el operando A
+    input wire [3:0] pmod_B,     // Pines físicos para el operando B
+    output wire [6:0] led        // Salidas hacia la barra de diodos LED de la placa
+);
+
+    // Registros internos para implementar la doble etapa de sincronización
+    reg rst_sync1, rst_sync2;
+    reg en_s1, en_s2;
+    reg a_s1, a_s2, b_s1, b_s2, c_s1, c_s2, d_s1, d_s2;
+    reg [3:0] A_s1, A_s2, B_s1, B_s2;
+
+    // Inversión de polaridad del botón físico (Activo en 0 lógico a Activo en 1 lógico)
+    wire rst_raw = !sys_rst_n;
+
+    // Proceso secuencial para sincronizar señales externas asíncronas con el reloj global
+    always @(posedge sys_clk or posedge rst_raw) begin
+        if (rst_raw) begin
+            // Inicialización de estados de sincronización ante un reset físico de hardware
+            rst_sync1 <= 1'b1; rst_sync2 <= 1'b1;
+            en_s1     <= 1'b0; en_s2     <= 1'b0;
+            a_s1 <= 1'b0; a_s2 <= 1'b0; b_s1 <= 1'b0; b_s2 <= 1'b0;
+            c_s1 <= 1'b0; c_s2 <= 1'b0; d_s1 <= 1'b0; d_s2 <= 1'b0;
+            A_s1 <= 4'b0; A_s2 <= 4'b0; B_s1 <= 4'b0; B_s2 <= 4'b0;
+        end else begin
+            // Desplazamiento de los datos de la etapa 1 a la etapa 2 en cada flanco
+            rst_sync1 <= 1'b0;         rst_sync2 <= rst_sync1; // Liberación síncrona
+            en_s1     <= pmod_en;      en_s2     <= en_s1;
+            a_s1      <= pmod_ctrl[3]; a_s2      <= a_s1;
+            b_s1      <= pmod_ctrl[2]; b_s2      <= b_s1;
+            c_s1      <= pmod_ctrl[1]; c_s2      <= c_s1;
+            d_s1      <= pmod_ctrl[0]; d_s2      <= d_s1;
+            A_s1      <= pmod_A;       A_s2      <= A_s1;
+            B_s1      <= pmod_B;       B_s2      <= B_s1;
+        end
+    end
+
+    // Cables de interconexión con el núcleo lógico sintetizado
+    wire out_u, out_v, out_flag_q;
+    wire [3:0] out_Q;
+
+    // Instanciación del módulo de simulación dentro del envoltorio de la placa física
+    top_20210684 core_sys (
+        .a(a_s2), .b(b_s2), .c(c_s2), .d(d_s2),
+        .A(A_s2), .B(B_s2),
+        .clk(sys_clk),
+        .rst(rst_sync2), // Envío de reset de liberación sincronizada
+        .en(en_s2),
+        .U(out_u), .V(out_v),
+        .Y(), .flag_comb(), // Salidas combinacionales directas ignoradas en hardware
+        .Q(out_Q), .flag_q(out_flag_q)
+    );
+
+    // Asignación de señales de salida hacia los pines físicos de los LED de la placa
+    // Mapeo exigido: led[6:0] = {v, u, flag_q, Q[3:0]}
+    assign led = {out_v, out_u, out_flag_q, out_Q};
+
+endmodule
