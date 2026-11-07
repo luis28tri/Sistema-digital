@@ -1,0 +1,160 @@
+module top_module
+#(
+    parameter integer K = 3
+)(
+    input  wire       clk,
+    input  wire       rst,
+    input  wire       en,
+    input  wire [7:0] cmd,
+    input  wire [7:0] data,
+    output wire [15:0] y
+);
+
+    localparam IDLE = 3'd0;
+    localparam ON0  = 3'd1;
+    localparam OFF0 = 3'd2;
+    localparam ON1  = 3'd3;
+    localparam OFF1 = 3'd4;
+    localparam ON2  = 3'd5;
+
+    reg [2:0] state;
+    reg [5:0] dur_cnt;
+    reg [1:0] audio_cnt;
+    reg       speaker;
+    reg [1:0] burst_idx;
+
+    wire start;
+
+    assign start = cmd[0];
+
+    // Evita warnings por entradas no usadas
+    wire unused_inputs;
+    assign unused_inputs = &{1'b0, cmd[7:1], data};
+
+    always @(posedge clk) begin
+        if (rst) begin
+            state     <= IDLE;
+            dur_cnt   <= 6'd0;
+            audio_cnt <= 2'd0;
+            speaker   <= 1'b0;
+            burst_idx <= 2'd0;
+        end
+        else if (en) begin
+            case (state)
+
+                IDLE: begin
+                    if (start) begin
+                        state     <= ON0;
+                        dur_cnt   <= 6'd0;
+                        audio_cnt <= 2'd0;
+                        speaker   <= 1'b0;
+                        burst_idx <= 2'd0;
+                    end
+                end
+
+                ON0: begin
+                    if (dur_cnt == (2*K-1)) begin
+                        state     <= OFF0;
+                        dur_cnt   <= 6'd0;
+                        audio_cnt <= 2'd0;
+                        speaker   <= 1'b0;
+                        burst_idx <= 2'd0;
+                    end
+                    else begin
+                        dur_cnt <= dur_cnt + 6'd1;
+
+                        if (audio_cnt == 2'd1) begin
+                            audio_cnt <= 2'd0;
+                            speaker   <= ~speaker;
+                        end
+                        else begin
+                            audio_cnt <= audio_cnt + 2'd1;
+                        end
+                    end
+                end
+
+                OFF0: begin
+                    if (dur_cnt == (K-1)) begin
+                        state     <= ON1;
+                        dur_cnt   <= 6'd0;
+                        audio_cnt <= 2'd0;
+                        speaker   <= 1'b0;
+                        burst_idx <= 2'd1;
+                    end
+                    else begin
+                        dur_cnt <= dur_cnt + 6'd1;
+                    end
+                end
+
+                ON1: begin
+                    if (dur_cnt == (2*K-1)) begin
+                        state     <= OFF1;
+                        dur_cnt   <= 6'd0;
+                        audio_cnt <= 2'd0;
+                        speaker   <= 1'b0;
+                        burst_idx <= 2'd1;
+                    end
+                    else begin
+                        dur_cnt <= dur_cnt + 6'd1;
+
+                        if (audio_cnt == 2'd1) begin
+                            audio_cnt <= 2'd0;
+                            speaker   <= ~speaker;
+                        end
+                        else begin
+                            audio_cnt <= audio_cnt + 2'd1;
+                        end
+                    end
+                end
+
+                OFF1: begin
+                    if (dur_cnt == (K-1)) begin
+                        state     <= ON2;
+                        dur_cnt   <= 6'd0;
+                        audio_cnt <= 2'd0;
+                        speaker   <= 1'b0;
+                        burst_idx <= 2'd2;
+                    end
+                    else begin
+                        dur_cnt <= dur_cnt + 6'd1;
+                    end
+                end
+
+                ON2: begin
+                    if (dur_cnt == (2*K-1)) begin
+                        state     <= IDLE;
+                        dur_cnt   <= 6'd0;
+                        audio_cnt <= 2'd0;
+                        speaker   <= 1'b0;
+                        burst_idx <= 2'd0;
+                    end
+                    else begin
+                        dur_cnt <= dur_cnt + 6'd1;
+
+                        if (audio_cnt == 2'd1) begin
+                            audio_cnt <= 2'd0;
+                            speaker   <= ~speaker;
+                        end
+                        else begin
+                            audio_cnt <= audio_cnt + 2'd1;
+                        end
+                    end
+                end
+
+                default: begin
+                    state     <= IDLE;
+                    dur_cnt   <= 6'd0;
+                    audio_cnt <= 2'd0;
+                    speaker   <= 1'b0;
+                    burst_idx <= 2'd0;
+                end
+            endcase
+        end
+    end
+
+    assign y[0] = speaker;
+    assign y[1] = (state != IDLE);
+    assign y[3:2] = (state == IDLE) ? 2'd0 : burst_idx;
+    assign y[15:4] = 12'd0;
+
+endmodule
